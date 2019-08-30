@@ -1,37 +1,112 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+
+typedef struct node* Node;
 
 struct node {
 	int value;
-	struct node* next;
+	Node next;
 };
 
-struct node* ll_new(int value, struct node* next) {
-	struct node* head = (struct node*)malloc(sizeof(struct node));
+Node ll_new(int value, Node next) {
+	Node head = (Node)malloc(sizeof(struct node));
 	head->value = value;
 	head->next = next;
 	return head;
 }
 
+void ll_append(Node const head, int value) {
+	assert(head != NULL);	
+
+	Node to_append = ll_new(value, NULL);
+	Node iter = head;
+	while (iter->next != NULL) {
+		iter = iter->next;
+	}
+	iter->next = to_append;
+}
+
+Node ll_prepend(Node const head, int value) {
+	Node to_prepend = ll_new(value, NULL);
+	if (head == NULL) {
+		return to_prepend;
+	}
+	to_prepend->next = head;
+	return to_prepend;
+}
+
+Node ll_find(Node const head, int query) {
+	Node iter = head;
+	while (iter->next != NULL && iter->value != query) {
+		iter = iter->next;
+	}
+	return iter;
+}
+
+Node ll_delete(Node const head, int query, int* success) {
+	Node curr = head;
+	Node prev = NULL;
+
+	while (curr != NULL && curr->value != query) {
+		prev = curr;
+		curr = curr->next;
+	}
+
+	// Reached end of list
+	if (curr == NULL) {
+		*success = 0;
+		return head;
+	}
+
+	// Deleting something...
+	*success = 1;
+
+	// Delete head
+	if (prev == NULL) {
+		Node result = curr->next;
+		free(curr);	
+		return result;
+	}
+
+	// Delete anything else
+	prev->next = curr->next;
+	free(curr);
+	return head;
+}
+
+void ll_print_list(Node const head) {
+	Node iter = head;
+	while (iter != NULL) {
+		printf("(%d)->", iter->value);
+		iter = iter->next;
+	}
+	printf("(NULL)\n");
+}
+
 int main(int argc, char** argv) {
-	struct node* my_ll = ll_new(3, NULL);
-	printf("my_ll->value = %d\n", my_ll->value);
-	printf("my_ll->next= %x\n", my_ll->next);
+	Node head = ll_new(3, NULL);
 
-	struct node my_node;
-	struct node my_other_node;
+	head = ll_prepend(head, 5);
+	head = ll_prepend(head, 6);
+	head = ll_prepend(head, 7);
 
-	my_other_node.value = 6;
-	my_other_node.next = NULL;
+	ll_print_list(head);
 
-	my_node.value = 5;
-	my_node.next = &my_other_node;
+	int del_val = 33;
+	Node result = ll_find(head, del_val);
 
-	printf("my_node.value = %d\n", my_node.value);
-	printf("my_node.next = 0x%x\n", my_node.next);
+	if (result != NULL) {
+		printf("Found node that matched query %d, at: %p, with value = %d\n", 6, result, result->value);
+	}
 
-	printf("my_other_node.value = %d\n", my_other_node.value);
-	printf("my_other_node.next = %x\n", my_other_node.next);
+	int was_deleted = 0;
+	head = ll_delete(head, del_val, &was_deleted);
 
+	if (was_deleted > 0) {
+		printf("Deleted node with value = %d\n", del_val);
+	}
+
+	ll_print_list(head);
 	return 0;
 }
