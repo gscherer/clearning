@@ -4,73 +4,56 @@
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>
+#include "entry.h"
 
-typedef struct candidate* Candidate; 
-
-struct candidate {
-	char *entry_line;
-	size_t entry_line_len;
-	char *name_ptr;
-	size_t name_len;
-	long votes;
-};
-
-typedef enum candidate_err CandidateErr;
-
-enum candidate_err {
-	CANDIDATE_SUCCESS		= 0,
-	CANDIDATE_PARSE_NAME		= 1,
-	CANDIDATE_PARSE_VOTE		= 2
-};
-
-static const char* const candidate_err_msg[] = {
-	"Candidate created successfully",
+static const char* const entry_err_msg[] = {
+	"Entry created successfully",
 	"Failed to parse name",
 	"Failed to parse vote",
 };
 
-static void init_candidate(Candidate, CandidateErr *);
+static void init_entry(Entry, EntryErr *);
 
-Candidate create_candidate(
+Entry create_entry(
 	char *entry_line,
 	size_t entry_line_len,
-	CandidateErr *err)
+	EntryErr *err)
 {
-	Candidate entity = (Candidate)malloc(sizeof(struct candidate));
+	Entry entity = (Entry)malloc(sizeof(struct entry));
 	entity->entry_line = entry_line;
 	entity->entry_line_len = entry_line_len;
-	init_candidate(entity, err);
+	init_entry(entity, err);
 	return entity;
 }
 
-void free_candidate(Candidate entity) {
+void free_entry(Entry entity) {
 	assert(entity != NULL);
 	free(entity->entry_line);
 	free(entity);
 }
 
-void candidate_err_exit(CandidateErr *err, int line_num) {
-	fprintf(stderr, "%s, on line %d\n", candidate_err_msg[*err], line_num);
+void entry_err_exit(EntryErr *err, int line_num) {
+	fprintf(stderr, "%s, on line %d\n", entry_err_msg[*err], line_num);
 	exit(*err);
 }
 
-static long parse_votes(char *ptr, CandidateErr *err) {
+static long parse_votes(char *ptr, EntryErr *err) {
 	char *end;
 	errno = 0;
 	long votes = strtol(ptr, &end, 10);
 	if ((errno == ERANGE && (votes == LONG_MAX || votes == LONG_MIN))
 		|| (errno != 0 && votes == 0)) {
-		*err = CANDIDATE_PARSE_VOTE;	
+		*err = ENTRY_PARSE_VOTE;	
 		votes = 0;
 	}
 	return votes;
 }
 
 /**
- * Handle parsing of candidate.entry_line, which is of form:
+ * Handle parsing of entry.entry_line, which is of form:
  * 	"<name> <vote count>\n"
  */
-static void init_candidate(Candidate entity, CandidateErr *err) 
+static void init_entry(Entry entity, EntryErr *err) 
 {
 	char *ptr = entity->entry_line;
 	size_t n = entity->entry_line_len;
@@ -91,7 +74,7 @@ static void init_candidate(Candidate entity, CandidateErr *err)
 
 	// Empty name	
 	if (entity->name_ptr == ptr) {
-		*err = CANDIDATE_PARSE_NAME;
+		*err = ENTRY_PARSE_NAME;
 		return;
 	}
 
@@ -100,7 +83,7 @@ static void init_candidate(Candidate entity, CandidateErr *err)
 		ptr--;
 		i--;
 		if (ptr != NULL && !isblank(*ptr)) {
-			*err = CANDIDATE_PARSE_VOTE;
+			*err = ENTRY_PARSE_VOTE;
 			return;		
 		}
 	}
@@ -111,10 +94,10 @@ static void init_candidate(Candidate entity, CandidateErr *err)
 	// Parse votes
 	if (ptr != NULL && i < n) {
 		entity->votes = parse_votes(ptr, err);
-		if (*err == CANDIDATE_PARSE_VOTE) {
+		if (*err == ENTRY_PARSE_VOTE) {
 			return;
 		}
 	}
-	*err = CANDIDATE_SUCCESS;
+	*err = ENTRY_SUCCESS;
 	return;
 }
